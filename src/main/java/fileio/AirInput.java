@@ -27,16 +27,51 @@ public final class AirInput extends InputParams {
     private double dustParticles;
     private List<PairInput> sections;
 
+    private final String entity = "air";
+    private double airQuality;
+
+    private double calculateAirQuality() {
+        double calculatedQuality = switch (this.getType()) {
+            case "TropicalAir" -> (this.oxygenLevel * 2) +
+                    (this.humidity * 0.5) -
+                    (this.co2Level * 0.01);
+            case "PolarAir" -> (this.oxygenLevel * 2) +
+                    (100 - Math.abs(this.temperature)) -
+                    (this.iceCrystalConcentration * 0.05);
+            case "TemperateAir" -> (this.oxygenLevel * 2) +
+                    (this.humidity * 0.7) -
+                    (this.pollenLevel * 0.1);
+            case "DesertAir" -> (this.oxygenLevel * 2) -
+                    (this.dustParticles * 0.2) -
+                    (this.temperature * 0.3);
+            case "MountainAir" -> {
+                double oxygenFactor = this.oxygenLevel -
+                        (this.altitude / 1000 * 0.5);
+                yield (oxygenFactor * 2) + (this.humidity * 0.6);
+            }
+            default -> 0.0;
+        };
+        this.airQuality = calculatedQuality;
+        return calculatedQuality;
+    }
+
+    public String getQualityStatus(double airQuality) {
+        if (airQuality < 40.00) {
+            return "Poor";
+        } else if (airQuality > 69.00) {
+            return "Good";
+        } else {
+            return "Moderate";
+        }
+    }
+
     public List<Map.Entry<String, Double>> getExtraDetails() {
         List<Map.Entry<String,Double>> details = new ArrayList<>();
+        details.add(Map.entry("airQuality", this.calculateAirQuality()));
+        details.add(Map.entry("altitude", this.altitude));
         details.add(Map.entry("humidity", this.humidity));
         details.add(Map.entry("temperature", this.temperature));
         details.add(Map.entry("oxygenLevel", this.oxygenLevel));
-        details.add(Map.entry("altitude", this.altitude));
-        details.add(Map.entry("pollenLevel", this.pollenLevel));
-        details.add(Map.entry("co2Level", this.co2Level));
-        details.add(Map.entry("iceCrystalConcentration", this.iceCrystalConcentration));
-        details.add(Map.entry("dustParticles", this.dustParticles));
         return details;
     }
 }

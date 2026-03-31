@@ -1,5 +1,7 @@
 package main;
 
+import Params.Commands;
+import Params.Exceptions;
 import Params.OutPrint;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
@@ -10,6 +12,7 @@ import fileio.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -55,61 +58,40 @@ public final class Main {
          *
          */
 
-        List<SoilInput> soils = new ArrayList<>();
-        List<AnimalInput> animals =  new ArrayList<>();
-        List<PlantInput> plants = new ArrayList<>();
-        List<AirInput> airs = new ArrayList<>();
-        List<WaterInput> waters = new ArrayList<>();
         PairInput robotPosition = new PairInput(0, 0);
-
-
-        for (SimulationInput simulationInput : inputLoader.getSimulations()) {
-            String territory = simulationInput.getTerritoryDim();
-            int enegryPoints = simulationInput.getEnergyPoints();
-            System.out.println(enegryPoints);
-            TerritorySectionParamsInput params = simulationInput.getTerritorySectionParams();
-
-            if (params.getSoil() != null) soils.addAll(params.getSoil());
-            if (params.getAnimals() != null) animals.addAll(params.getAnimals());
-            if (params.getPlants() != null) plants.addAll(params.getPlants());
-            if (params.getAir() != null) airs.addAll(params.getAir());
-            if (params.getWater() != null) waters.addAll(params.getWater());
-        }
+        boolean hasSimulationStarted = false;
+        List<List<List<InputParams>>> map = new ArrayList<>();
+        int crtSimulation = 0;
 
         for (CommandInput commandInput : inputLoader.getCommands()) {
+            if (!hasSimulationStarted && !commandInput.getCommand().equals("startSimulation")) {
+                Exceptions.printError(objectMapper, output, commandInput,
+                        "ERROR: Simulation not started. Cannot perform action");
+                continue;
+            }
+            if (hasSimulationStarted && commandInput.getCommand().equals("startSimulation")) {
+                Exceptions.printError(objectMapper, output, commandInput,
+                        "ERROR: Simulation already started. Cannot perform action");
+                continue;
+            }
             switch (commandInput.getCommand()) {
                 case "startSimulation":
                     OutPrint.printStartFinish(objectMapper, output, commandInput, 0);
+                    hasSimulationStarted = true;
+                    map = Commands.buildMap(inputLoader.getSimulations().get(crtSimulation));
                     break;
-                case "stopSimulation":
+                case "endSimulation":
                     OutPrint.printStartFinish(objectMapper, output, commandInput, 1);
+                    hasSimulationStarted = false;
+                    crtSimulation++;
                     break;
-                case "printEnvironment":
-                    ObjectNode outputWrapper = objectMapper.createObjectNode();
-                    outputWrapper.put("command", commandInput.getCommand());
-
-                    ObjectNode envConditions = objectMapper.createObjectNode();
-
-                    if (!soils.isEmpty()) {
-                        envConditions.set("soil", OutPrint.createNodeFromParam(objectMapper, soils.get(0)));
-                    }
-                    if (!plants.isEmpty()) {
-                        envConditions.set("plants", OutPrint.createNodeFromParam(objectMapper, plants.get(0)));
-                    }
-                    if (!animals.isEmpty()) {
-                        envConditions.set("animals", OutPrint.createNodeFromParam(objectMapper, animals.get(0)));
-                    }
-                    if (!waters.isEmpty()) {
-                        envConditions.set("water", OutPrint.createNodeFromParam(objectMapper, waters.get(0)));
-                    }
-                    if (!airs.isEmpty()) {
-                        envConditions.set("air", OutPrint.createNodeFromParam(objectMapper, airs.get(0)));
-                    }
-
-                    outputWrapper.set("output", envConditions);
-                    outputWrapper.put("timestamp", commandInput.getTimestamp());
-
-                    output.add(outputWrapper);
+                case "printEnvConditions":
+                    OutPrint.printEnvironment(objectMapper, output,
+                            map.get(robotPosition.getX()).get(robotPosition.getY()),
+                            commandInput.getTimestamp());
+                    break;
+                case "printMap" :
+                    OutPrint.printMap(objectMapper, output, map, commandInput.getTimestamp());
                     break;
             }
         }

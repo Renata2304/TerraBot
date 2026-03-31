@@ -26,13 +26,45 @@ public final class SoilInput extends InputParams {
     private double salinity;
     private List<PairInput> sections;
 
+    private final String entity = "soil";
+
+    private double soilQuality;
+
+    private double calculateSoilQuality() {
+        double qualityRaw = switch (this.getType()) {
+            case "ForestSoil" -> (nitrogen * 1.2) + (organicMatter * 2) +
+                    (waterRetention * 1.5) + (leafLitter * 0.3);
+            case "SwampSoil" -> (nitrogen * 1.1) + (organicMatter * 2.2) - (waterLogging * 5);
+            case "DesertSoil" -> (nitrogen * 0.5) + (waterRetention * 0.3) - (salinity * 2);
+            case "GrasslandSoil" -> (nitrogen * 1.3) + (organicMatter * 1.5) + (rootDensity * 0.8);
+            case "TundraSoil" -> (nitrogen * 0.7) + (organicMatter * 0.5) - (permafrostDepth * 1.5);
+            default -> 0.0;
+        };
+
+        double normalizeScore = Math.clamp(qualityRaw, 0.0, 100.0);
+
+        this.soilQuality = Math.round(normalizeScore * 100.0) / 100.0;
+        return this.soilQuality;
+    }
+
+    public String getQualityStatus(double soilQuality) {
+        if (soilQuality < 40.00) {
+            return "Poor";
+        } else if (soilQuality > 69.00) {
+            return "Good";
+        } else {
+            return "Moderate";
+        }
+    }
+
+    @Override
     public List<Map.Entry<String, Double>> getExtraDetails() {
         List<Map.Entry<String,Double>> details = new ArrayList<>();
+        details.add(Map.entry("soilQuality", calculateSoilQuality()));
         details.add(Map.entry("nitrogen", nitrogen));
-        details.add(Map.entry("water", waterRetention));
+        details.add(Map.entry("waterRetention", waterRetention));
         details.add(Map.entry("soilpH", soilpH));
         details.add(Map.entry("organicMatter", organicMatter));
-        details.add(Map.entry("leafLitter", leafLitter));
         details.add(Map.entry("waterLogging", waterLogging));
         return details;
     }

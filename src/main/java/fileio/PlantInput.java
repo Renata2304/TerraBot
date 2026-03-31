@@ -14,5 +14,7 @@ public final class PlantInput extends InputParams {
     private String name;
     private double mass;
     private List<PairInput> sections;
+
+    private final String entity = "plant";
 }
 

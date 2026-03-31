@@ -22,5 +22,7 @@ public class WaterInput extends InputParams {
     private double pH;
     private boolean isFrozen;
     private List<PairInput> sections;
+
+    private final String entity = "water";
 }
 

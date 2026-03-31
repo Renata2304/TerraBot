@@ -7,6 +7,8 @@ import java.util.Map;
 
 @Getter
 public abstract class InputParams {
+    protected String entity;
+
     protected String type;
     protected String name;
     protected double mass;
