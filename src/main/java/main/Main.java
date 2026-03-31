@@ -40,24 +40,6 @@ public final class Main {
         ArrayNode output = MAPPER.createArrayNode();
         ObjectMapper objectMapper = new ObjectMapper();
 
-        /*
-         * TODO Implement your function here
-         *
-         * How to add output to the output array?
-         * There are multiple ways to do this, here is one example:
-         *
-         *
-         * ObjectNode objectNode = MAPPER.createObjectNode();
-         * objectNode.put("field_name", "field_value");
-         *
-         * ArrayNode arrayNode = MAPPER.createArrayNode();
-         * arrayNode.add(objectNode);
-         *
-         * output.add(arrayNode);
-         * output.add(objectNode);
-         *
-         */
-
         PairInput robotPosition = new PairInput(0, 0);
         boolean hasSimulationStarted = false;
         List<List<List<InputParams>>> map = new ArrayList<>();
@@ -84,8 +66,12 @@ public final class Main {
                     OutPrint.printStartFinish(objectMapper, output, commandInput, 1);
                     hasSimulationStarted = false;
                     crtSimulation++;
+                    map = new ArrayList<>();
                     break;
                 case "printEnvConditions":
+//                    for (InputParams params : map.get(3).get(1)) {
+//                        System.out.println(params.getEntity());
+//                    }
                     OutPrint.printEnvironment(objectMapper, output,
                             map.get(robotPosition.getX()).get(robotPosition.getY()),
                             commandInput.getTimestamp());

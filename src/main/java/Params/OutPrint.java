@@ -70,8 +70,14 @@ public class OutPrint extends InputParams{
 
             for (InputParams param : params) {
                 switch (param) {
-                    case AirInput air -> airQuality = air.getQualityStatus(air.getAirQuality()).toLowerCase();
-                    case SoilInput soil -> soilQuality = soil.getQualityStatus(soil.getSoilQuality()).toLowerCase();
+                    case AirInput air -> {
+                        airQuality = air.getQualityStatus(air.getAirQuality()).toLowerCase();
+                        totalObjects = totalObjects - 1;
+                    }
+                    case SoilInput soil -> {
+                        soilQuality = soil.getQualityStatus(soil.getSoilQuality()).toLowerCase();
+                        totalObjects = totalObjects - 1;
+                    }
                     default -> {
                     }
                 }
@@ -100,8 +106,8 @@ public class OutPrint extends InputParams{
 
         for (int x = 0; x < map.size(); x++) {
             for (int y = 0; y < map.get(x).size(); y++) {
-                List<InputParams> cellParams = map.get(x).get(y);
-                ObjectNode cellOutput = printHelperMap(objectMapper, cellParams, x, y);
+                List<InputParams> cellParams = map.get(y).get(x);
+                ObjectNode cellOutput = printHelperMap(objectMapper, cellParams, y, x);
                 if (!cellOutput.isEmpty()) {
                     envConditions.add(cellOutput);
                 }
