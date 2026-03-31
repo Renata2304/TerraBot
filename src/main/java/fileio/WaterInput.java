@@ -24,5 +24,6 @@ public class WaterInput extends InputParams {
     private List<PairInput> sections;
 
     private final String entity = "water";
+    private boolean scanned = false;
 }
 

@@ -29,8 +29,21 @@ public final class AirInput extends InputParams {
 
     private final String entity = "air";
     private double airQuality;
+    private boolean toxicity;
 
-    private double calculateAirQuality() {
+    public Map.Entry<String, Double> getSpecificAirField() {
+        return switch (this.getType()) {
+            case "TropicalAir" -> Map.entry("co2Level", this.co2Level);
+            case "PolarAir" -> Map.entry("iceCrystalConcentration", this.iceCrystalConcentration);
+            case "TemperateAir" -> Map.entry("pollenLevel", this.pollenLevel);
+            case "DesertAir" -> Map.entry("dustParticles", this.dustParticles);
+            case "MountainAir" -> Map.entry("altitude", this.altitude);
+
+            default -> Map.entry("unknown", 0.0);
+        };
+    }
+
+    public double calculateAirQuality() {
         double calculatedQuality = switch (this.getType()) {
             case "TropicalAir" -> (this.oxygenLevel * 2) +
                     (this.humidity * 0.5) -
@@ -51,8 +64,10 @@ public final class AirInput extends InputParams {
             }
             default -> 0.0;
         };
-        this.airQuality = calculatedQuality;
-        return calculatedQuality;
+
+        double normalizeScore = Math.clamp(calculatedQuality, 0, 100);
+        this.airQuality = Math.round(normalizeScore * 100.0) / 100.0;
+        return this.airQuality;
     }
 
     public String getQualityStatus(double airQuality) {
@@ -68,10 +83,11 @@ public final class AirInput extends InputParams {
     public List<Map.Entry<String, Double>> getExtraDetails() {
         List<Map.Entry<String,Double>> details = new ArrayList<>();
         details.add(Map.entry("airQuality", this.calculateAirQuality()));
-        details.add(Map.entry("altitude", this.altitude));
         details.add(Map.entry("humidity", this.humidity));
         details.add(Map.entry("temperature", this.temperature));
         details.add(Map.entry("oxygenLevel", this.oxygenLevel));
+        details.add(Map.entry(this.getSpecificAirField().getKey(),
+                              this.getSpecificAirField().getValue()));
         return details;
     }
 }

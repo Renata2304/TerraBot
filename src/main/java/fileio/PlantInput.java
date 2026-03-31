@@ -15,6 +15,8 @@ public final class PlantInput extends InputParams {
     private double mass;
     private List<PairInput> sections;
 
-    private final String entity = "plant";
+    private String status = "young";
+    private boolean scanned = false;
+    private final String entity = "plants";
 }
 

@@ -44,6 +44,7 @@ public final class Main {
         boolean hasSimulationStarted = false;
         List<List<List<InputParams>>> map = new ArrayList<>();
         int crtSimulation = 0;
+        int energyLvl = -1;
 
         for (CommandInput commandInput : inputLoader.getCommands()) {
             if (!hasSimulationStarted && !commandInput.getCommand().equals("startSimulation")) {
@@ -61,23 +62,29 @@ public final class Main {
                     OutPrint.printStartFinish(objectMapper, output, commandInput, 0);
                     hasSimulationStarted = true;
                     map = Commands.buildMap(inputLoader.getSimulations().get(crtSimulation));
+                    energyLvl = inputLoader.getSimulations().get(crtSimulation).getEnergyPoints();
                     break;
                 case "endSimulation":
                     OutPrint.printStartFinish(objectMapper, output, commandInput, 1);
                     hasSimulationStarted = false;
                     crtSimulation++;
                     map = new ArrayList<>();
+                    robotPosition = new PairInput(0, 0);
+                    energyLvl = -1;
                     break;
                 case "printEnvConditions":
-//                    for (InputParams params : map.get(3).get(1)) {
-//                        System.out.println(params.getEntity());
-//                    }
+//                    map = Commands.updateMap(map, commandInput.getTimestamp());
+
                     OutPrint.printEnvironment(objectMapper, output,
-                            map.get(robotPosition.getX()).get(robotPosition.getY()),
+                            map.get(robotPosition.getY()).get(robotPosition.getX()),
                             commandInput.getTimestamp());
                     break;
                 case "printMap" :
+                    map = Commands.updateMap(map, commandInput.getTimestamp());
                     OutPrint.printMap(objectMapper, output, map, commandInput.getTimestamp());
+                    break;
+                case "getEnergyStatus" :
+                    OutPrint.printGetEnergyStatus(objectMapper, output, commandInput, energyLvl);
                     break;
             }
         }

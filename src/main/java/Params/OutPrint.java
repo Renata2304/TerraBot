@@ -104,12 +104,18 @@ public class OutPrint extends InputParams{
 
         ArrayNode envConditions = objectMapper.createArrayNode();
 
-        for (int x = 0; x < map.size(); x++) {
-            for (int y = 0; y < map.get(x).size(); y++) {
-                List<InputParams> cellParams = map.get(y).get(x);
-                ObjectNode cellOutput = printHelperMap(objectMapper, cellParams, y, x);
-                if (!cellOutput.isEmpty()) {
-                    envConditions.add(cellOutput);
+        if (!map.isEmpty()) {
+            int nrOfRows = map.size();
+            int nrOfCols = map.get(0).size();
+
+            for (int y = 0; y < nrOfCols; y++) {
+                for (int x = 0; x < nrOfRows; x++) {
+                    List<InputParams> cellParams = map.get(x).get(y);
+                    ObjectNode cellOutput = printHelperMap(objectMapper, cellParams, x, y);
+
+                    if (!cellOutput.isEmpty()) {
+                        envConditions.add(cellOutput);
+                    }
                 }
             }
         }
@@ -118,4 +124,13 @@ public class OutPrint extends InputParams{
         outputWrapper.put("timestamp", timestamp);
     }
 
+    public static void printGetEnergyStatus (final ObjectMapper objectMapper, final ArrayNode output,
+                                             final CommandInput commandInput, final int energyLvl) {
+        ObjectNode message = objectMapper.createObjectNode();
+        message.put("command", commandInput.getCommand());
+        message.put("message", "TerraBot has " + energyLvl + " energy points left.");
+        message.put("timestamp", commandInput.getTimestamp());
+
+        output.add(message);
+    }
 }
