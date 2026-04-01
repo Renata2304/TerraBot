@@ -68,6 +68,19 @@ public final class SoilInput extends InputParams {
         };
     }
 
+    public double calculateBlockProbability() {
+        double probability = switch (this.getType()) {
+            case "ForestSoil" -> (this.waterRetention * 0.6 + this.leafLitter * 0.4) / 80.0 * 100.0;
+            case "SwampSoil" -> this.waterLogging * 10.0;
+            case "DesertSoil" -> (100.0 - this.waterRetention + this.salinity) / 100.0 * 100.0;
+            case "GrasslandSoil" -> ((50.0 - this.rootDensity) + this.waterRetention * 0.5) / 75.0 * 100.0;
+            case "TundraSoil" -> (50.0 - this.permafrostDepth) / 50.0 * 100.0;
+            default -> 0.0;
+        };
+
+        return Math.clamp(probability, 0.0, 100.0);
+    }
+
     @Override
     public List<Map.Entry<String, Double>> getExtraDetails() {
         List<Map.Entry<String,Double>> details = new ArrayList<>();

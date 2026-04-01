@@ -30,6 +30,7 @@ public final class AirInput extends InputParams {
     private final String entity = "air";
     private double airQuality;
     private boolean toxicity;
+    private double toxicityAQ;
 
     public Map.Entry<String, Double> getSpecificAirField() {
         return switch (this.getType()) {
@@ -78,6 +79,48 @@ public final class AirInput extends InputParams {
         } else {
             return "Moderate";
         }
+    }
+
+    public double getMaxScore() {
+        return switch (this.getType()) {
+            case "TropicalAir" -> 82.0;
+            case "PolarAir" -> 142.0;
+            case "TemperateAir" -> 84.0;
+            case "DesertAir" -> 65.0;
+            case "MountainAir" -> 78.0;
+            default -> 100.0;
+        };
+    }
+
+    public void calculateToxicity() {
+        double maxScore = this.getMaxScore();
+        double toxicityRaw = 100.0 * (1.0 - this.airQuality / maxScore);
+
+        double normalizedTox = Math.clamp(toxicityRaw, 0.0, 100.0);
+        this.toxicityAQ = Math.round(normalizedTox * 100.0) / 100.0;
+
+        this.toxicity = this.toxicityAQ > (0.8 * maxScore);
+    }
+
+    public void applyWeatherEvent(double rainfall, double windSpeed, String season,
+                                  boolean desertStorm, int numberOfHikers) {
+        double updatedQuality = this.airQuality;
+
+        switch (this.getType()) {
+            case "TropicalAir" -> updatedQuality += (rainfall * 0.3);
+            case "PolarAir" -> updatedQuality -= (windSpeed * 0.2);
+            case "TemperateAir" -> {
+                double seasonPenalty = "Spring".equalsIgnoreCase(season) ? 15.0 : 0.0;
+                updatedQuality -= seasonPenalty;
+            }
+            case "DesertAir" -> updatedQuality -= (desertStorm ? 30.0 : 0.0);
+            case "MountainAir" -> updatedQuality -= (numberOfHikers * 0.1);
+        }
+
+        double normalizeScore = Math.max(0.0, Math.min(100.0, updatedQuality));
+        this.airQuality = Math.round(normalizeScore * 100.0) / 100.0;
+
+        this.calculateToxicity();
     }
 
     public List<Map.Entry<String, Double>> getExtraDetails() {

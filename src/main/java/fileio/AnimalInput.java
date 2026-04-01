@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -14,14 +15,17 @@ public final class AnimalInput extends InputParams {
     private String name;
     private double mass;
     private List<PairInput> sections;
-    private String status = "healthy";
+    private String status = "hungry";
     private boolean scanned = false;
     private boolean movedThisTurn = false;
+    private double pendingFertilizer = 0.0;
+
     private final String entity = "animals";
 
     public boolean hasMovedThisTurn() {
         return movedThisTurn;
     }
+
     public double calculateAttackProbability() {
         int possibility = switch (this.getType()) {
             case "Herbivores" -> 85;
@@ -34,4 +38,3 @@ public final class AnimalInput extends InputParams {
         return (100.0 - possibility) / 10.0;
     }
 }
-

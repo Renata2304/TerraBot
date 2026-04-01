@@ -4,11 +4,8 @@ import fileio.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.StringTokenizer;
 
-import static java.util.Collections.addAll;
-
-public class Commands extends InputParams{
+public class Commands extends InputParams {
 
     public static List<List<List<InputParams>>> buildMap(SimulationInput simulationInput) {
         List<List<List<InputParams>>> map = new ArrayList<>();
@@ -70,7 +67,7 @@ public class Commands extends InputParams{
                 }
             }
         }
-        if  (waters != null) {
+        if (waters != null) {
             for (WaterInput water : waters) {
                 if (water.getSections() != null) {
                     for (PairInput pair : water.getSections()) {
@@ -90,62 +87,56 @@ public class Commands extends InputParams{
 
         boolean isCarnivore = "Carnivores".equals(animal.getType()) || "Parasites".equals(animal.getType());
         boolean hasEaten = false;
-        double fertilizerBonus = 0.0;
 
-        // Extragem entitățile de pe celulă
         AnimalInput prey = null;
         PlantInput plant = null;
         WaterInput water = null;
-        SoilInput soil = null;
 
         for (InputParams param : cell) {
             if (param instanceof AnimalInput a && a != animal) prey = a;
             else if (param instanceof PlantInput p) plant = p;
             else if (param instanceof WaterInput w) water = w;
-            else if (param instanceof SoilInput s) soil = s;
         }
 
-        // 1. Carnivore / Parasite mănâncă alt animal (chiar și nescanat)
         if (isCarnivore && prey != null) {
             animal.setMass(animal.getMass() + prey.getMass());
+            animal.setPendingFertilizer(0.5);
             cell.remove(prey);
             hasEaten = true;
-            fertilizerBonus = 0.5;
-        }
-        // 2. Ierbivore / Fallback pentru carnivore fără pradă
-        else {
+        } else {
             boolean plantUnlocked = plant != null && plant.isScanned();
             boolean waterUnlocked = water != null && water.isScanned();
 
             if (plantUnlocked && waterUnlocked) {
                 double waterToDrink = Math.min(animal.getMass() * 0.08, water.getMass());
                 water.setMass(water.getMass() - waterToDrink);
+                if (water.getMass() <= 0) cell.remove(water);
+
                 animal.setMass(animal.getMass() + waterToDrink + plant.getMass());
+                animal.setPendingFertilizer(0.8);
                 cell.remove(plant);
                 hasEaten = true;
-                fertilizerBonus = 0.8;
             } else if (plantUnlocked) {
                 animal.setMass(animal.getMass() + plant.getMass());
+                animal.setPendingFertilizer(0.5);
                 cell.remove(plant);
                 hasEaten = true;
-                fertilizerBonus = 0.5;
             } else if (waterUnlocked) {
                 double waterToDrink = Math.min(animal.getMass() * 0.08, water.getMass());
                 water.setMass(water.getMass() - waterToDrink);
+                if (water.getMass() <= 0) cell.remove(water);
+
                 animal.setMass(animal.getMass() + waterToDrink);
+                animal.setPendingFertilizer(0.5);
                 hasEaten = true;
-                fertilizerBonus = 0.5;
             }
         }
 
-        // 3. Actualizare status și îngrășământ
         if (hasEaten) {
             animal.setStatus("well-fed");
-            if (soil != null) {
-                soil.setOrganicMatter(soil.getOrganicMatter() + fertilizerBonus);
-            }
         } else {
             animal.setStatus("hungry");
+            animal.setPendingFertilizer(0.0);
         }
     }
 
@@ -154,19 +145,17 @@ public class Commands extends InputParams{
         int rows = map.size();
         int cols = map.get(0).size();
 
-        // Direcțiile: Sus, Dreapta, Jos, Stânga
         int[] dx = {-1, 0, 1, 0};
         int[] dy = {0, 1, 0, -1};
 
         int bestX = -1, bestY = -1;
-        int priorityLevel = 4; // 1 = Plant+Water, 2 = Plant, 3 = Water, 4 = Any valid
+        int priorityLevel = 4;
         double bestWaterQuality = -1.0;
 
         for (int i = 0; i < 4; i++) {
             int nx = currentX + dx[i];
             int ny = currentY + dy[i];
 
-            // Verificăm limitele hărții
             if (nx >= 0 && nx < rows && ny >= 0 && ny < cols) {
                 List<InputParams> neighborCell = map.get(nx).get(ny);
 
@@ -175,58 +164,48 @@ public class Commands extends InputParams{
                 double waterQuality = 0.0;
 
                 for (InputParams param : neighborCell) {
-                    if (param instanceof PlantInput) hasPlant = true;
+                    if (param instanceof PlantInput) {
+                        hasPlant = true;
+                    }
                     if (param instanceof WaterInput w) {
                         hasWater = true;
-                        waterQuality = w.getPurity();
+                        waterQuality = w.getWaterQuality();
                     }
                 }
 
-                // Prio 1: Plant + Water (tie-breaker: waterQuality)
                 if (hasPlant && hasWater) {
                     if (priorityLevel > 1 || waterQuality > bestWaterQuality) {
                         bestX = nx; bestY = ny;
                         priorityLevel = 1;
                         bestWaterQuality = waterQuality;
                     }
-                }
-                // Prio 2: Doar Plant (luăm prima găsită confrom ordinii parcurgerii)
-                else if (hasPlant && priorityLevel > 2) {
+                } else if (hasPlant && priorityLevel > 2) {
                     bestX = nx; bestY = ny;
                     priorityLevel = 2;
-                }
-                // Prio 3: Doar Water (tie-breaker: waterQuality)
-                else if (hasWater && priorityLevel >= 3) {
+                } else if (hasWater && priorityLevel >= 3) {
                     if (priorityLevel > 3 || waterQuality > bestWaterQuality) {
                         bestX = nx; bestY = ny;
                         priorityLevel = 3;
                         bestWaterQuality = waterQuality;
                     }
-                }
-                // Prio 4: Orice pătrățică validă (prima găsită)
-                else if (priorityLevel > 3 && bestX == -1) {
+                } else if (priorityLevel > 3 && bestX == -1) {
                     bestX = nx; bestY = ny;
                 }
             }
         }
 
-        // Efectuăm mișcarea dacă am găsit o celulă validă
         if (bestX != -1 && bestY != -1) {
             map.get(currentX).get(currentY).remove(animal);
             map.get(bestX).get(bestY).add(animal);
-
-            // Actualizăm coordonatele interne ale animalului (dacă folosești o astfel de reținere)
-            // animal.setX(bestX);
-            // animal.setY(bestY);
         }
     }
 
     public static List<List<List<InputParams>>> updateMap(List<List<List<InputParams>>> map,
                                                           final int iter) {
-        int rows =  map.size();
-        int cols =  map.get(0).size();
+        int rows = map.size();
+        int cols = map.getFirst().size();
 
-        for  (int y = 0; y < rows; y++) {
+        for (int y = 0; y < rows; y++) {
             for (int x = 0; x < cols; x++) {
                 List<InputParams> cell = map.get(y).get(x);
                 if (cell == null || cell.isEmpty()) {
@@ -245,49 +224,39 @@ public class Commands extends InputParams{
                     else if (param instanceof PlantInput p) plant = p;
                     else if (param instanceof AnimalInput an) animal = an;
                 }
+
                 if (air != null && air.isToxicity() && animal != null) {
                     animal.setStatus("sick");
                 }
 
-                // Soil -> Plant (+0.2 mass)
                 if (soil != null && plant != null) {
                     plant.setMass(plant.getMass() + 0.2);
                 }
 
-                // Water -> Air, Soil, Plant
                 if (water != null) {
-
-                    // Water -> Soil (+0.1 waterRetention la fiecare 2 iterații)
                     if (soil != null && iter % 2 == 1) {
                         soil.setWaterRetention(soil.getWaterRetention() + 0.1);
                     }
-
-                    // Water -> Air (+0.1 humidity la fiecare 2 iterații)
                     if (air != null && iter % 2 == 1) {
                         air.setHumidity(air.getHumidity() + 0.1);
                     }
-
-                    // Water -> Plant (+0.2 mass la FIECARE iterație)
                     if (plant != null) {
                         plant.setMass(plant.getMass() + 0.2);
                     }
                 }
 
-                // Plant -> Air (+ oxigen)
                 if (air != null && plant != null) {
-
                     double newOxygenLevel = getOxygenLevel(plant, air);
                     air.setOxygenLevel(newOxygenLevel);
                 }
 
-                // Animal -> Soil, Water, Plant
                 if (animal != null) {
                     if (animal.isScanned()) {
                         processAnimalFeeding(animal, cell);
 
                         if (iter % 2 == 1) {
                             if (!animal.hasMovedThisTurn()) {
-                                processAnimalMovement(animal, x, y, map);
+                                processAnimalMovement(animal, y, x, map);
                                 animal.setMovedThisTurn(true);
                             }
                         }
@@ -323,5 +292,74 @@ public class Commands extends InputParams{
         };
 
         return air.getOxygenLevel() + oxygenFromPlant + maturityOxygenRate;
+    }
+
+    public static PairInput pickNextBestCell(List<List<List<InputParams>>> map, PairInput crtCell) {
+        PairInput bestCell = null;
+        int bestScore = Integer.MAX_VALUE;
+
+        int rows = map.size();
+        int cols = map.getFirst().size();
+
+        int currentX = crtCell.getX();
+        int currentY = crtCell.getY();
+
+        int[] dx = {0, 1, 0, -1};
+        int[] dy = {-1, 0, 1, 0};
+
+        for (int i = 0; i < 4; i++) {
+            int nx = currentX + dx[i];
+            int ny = currentY + dy[i];
+
+            if (ny >= 0 && ny < rows && nx >= 0 && nx < cols) {
+                List<InputParams> neighborCell = map.get(ny).get(nx);
+
+                int currentScore = (int) getCellQuality(neighborCell);
+
+                if (bestCell == null || currentScore < bestScore) {
+                    bestScore = currentScore;
+
+                    bestCell = new PairInput();
+                    bestCell.setX(nx);
+                    bestCell.setY(ny);
+                }
+            }
+        }
+
+        return bestCell;
+    }
+
+    public static long getCellQuality(List<InputParams> cell) {
+        if (cell == null || cell.isEmpty()) {
+            return 0;
+        }
+
+        final int count = cell.size();
+
+        double possibilityToGetStuckInSoil = 0.0;
+        double possibilityToGetDamagedByAir = 0.0;
+        double possibilityToBeAttackedByAnimal = 0.0;
+        double possibilityToGetStuckInPlants = 0.0;
+
+        for (InputParams param : cell) {
+            if (param instanceof AirInput a) {
+                a.calculateAirQuality();
+                a.calculateToxicity();
+                possibilityToGetDamagedByAir = a.getToxicityAQ();
+            } else if (param instanceof SoilInput s) {
+                possibilityToGetStuckInSoil = s.calculateBlockProbability();
+            } else if (param instanceof PlantInput p) {
+                possibilityToGetStuckInPlants = p.calculateBlockProbability();
+            } else if (param instanceof AnimalInput an) {
+                possibilityToBeAttackedByAnimal = an.calculateAttackProbability();
+            }
+        }
+
+        double sum = possibilityToGetStuckInSoil + possibilityToGetDamagedByAir +
+                possibilityToBeAttackedByAnimal + possibilityToGetStuckInPlants;
+
+        double mean = Math.abs(sum / count);
+
+        return Math.round(mean);
     }
 }

@@ -125,12 +125,44 @@ public class OutPrint extends InputParams{
     }
 
     public static void printGetEnergyStatus (final ObjectMapper objectMapper, final ArrayNode output,
-                                             final CommandInput commandInput, final int energyLvl) {
+                                             final CommandInput commandInput, final long energyLvl) {
         ObjectNode message = objectMapper.createObjectNode();
         message.put("command", commandInput.getCommand());
         message.put("message", "TerraBot has " + energyLvl + " energy points left.");
         message.put("timestamp", commandInput.getTimestamp());
 
         output.add(message);
+    }
+
+    private static boolean verifyMoveRobot(final ObjectMapper objectMapper, final ArrayNode output,
+                                           final CommandInput commandInput, final long energyLvl,
+                                           final long quality) {
+        if (energyLvl - quality < 0) {
+            Exceptions.printError(objectMapper, output, commandInput,
+                    "ERROR: Not enough battery left. Cannot perform action");
+            return false;
+        }
+
+        return true;
+    }
+
+    public static long printMoveRobot(final ObjectMapper objectMapper, final ArrayNode output,
+                                      final CommandInput commandInput, final PairInput posToMove,
+                                      final long quality, long energyLvl) {
+        boolean result = verifyMoveRobot(objectMapper, output, commandInput, energyLvl, quality);
+
+        if (result) {
+            ObjectNode message = objectMapper.createObjectNode();
+            message.put("command", commandInput.getCommand());
+            message.put("message", "The robot has successfully moved to position (" +
+                    posToMove.getY() + ", " + posToMove.getX() + ").");
+            message.put("timestamp", commandInput.getTimestamp());
+
+            output.add(message);
+
+            energyLvl = energyLvl - quality;
+        }
+
+        return energyLvl;
     }
 }

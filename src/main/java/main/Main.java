@@ -44,7 +44,7 @@ public final class Main {
         boolean hasSimulationStarted = false;
         List<List<List<InputParams>>> map = new ArrayList<>();
         int crtSimulation = 0;
-        int energyLvl = -1;
+        long energyLvl = -1;
 
         for (CommandInput commandInput : inputLoader.getCommands()) {
             if (!hasSimulationStarted && !commandInput.getCommand().equals("startSimulation")) {
@@ -85,6 +85,17 @@ public final class Main {
                     break;
                 case "getEnergyStatus" :
                     OutPrint.printGetEnergyStatus(objectMapper, output, commandInput, energyLvl);
+                    break;
+                case "moveRobot" :
+                    final PairInput nextPos = Commands.pickNextBestCell(map, robotPosition);
+                    if (nextPos != null) {
+                        final List<InputParams> nextCell = map.get(nextPos.getY()).get(nextPos.getX());
+                        final long quality = Commands.getCellQuality(nextCell);
+                        energyLvl = OutPrint.printMoveRobot(objectMapper, output, commandInput, nextPos, quality, energyLvl);
+
+                        robotPosition.setX(nextPos.getX());
+                        robotPosition.setY(nextPos.getY());
+                    }
                     break;
             }
         }
