@@ -27,6 +27,7 @@ public final class SoilInput extends InputParams {
     private List<PairInput> sections;
 
     private final String entity = "soil";
+    private boolean scanned = false;
 
     private double soilQuality;
 

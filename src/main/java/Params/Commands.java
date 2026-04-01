@@ -225,27 +225,29 @@ public class Commands extends InputParams {
                     else if (param instanceof AnimalInput an) animal = an;
                 }
 
-                if (air != null && air.isToxicity() && animal != null) {
-                    animal.setStatus("sick");
+                if (air != null && air.isScanned() && animal != null && animal.isScanned()) {
+                    if (air.isToxicity()) {
+                        animal.setStatus("sick");
+                    }
                 }
 
-                if (soil != null && plant != null) {
+                if (soil != null && soil.isScanned() && plant != null && plant.isScanned()) {
                     plant.setMass(plant.getMass() + 0.2);
                 }
 
-                if (water != null) {
-                    if (soil != null && iter % 2 == 1) {
+                if (water != null && water.isScanned()) {
+                    if (soil != null && soil.isScanned() && iter % 2 == 1) {
                         soil.setWaterRetention(soil.getWaterRetention() + 0.1);
                     }
-                    if (air != null && iter % 2 == 1) {
+                    if (air != null && air.isScanned() && iter % 2 == 1) {
                         air.setHumidity(air.getHumidity() + 0.1);
                     }
-                    if (plant != null) {
+                    if (plant != null && plant.isScanned()) {
                         plant.setMass(plant.getMass() + 0.2);
                     }
                 }
 
-                if (air != null && plant != null) {
+                if (air != null && air.isScanned() && plant != null && plant.isScanned()) {
                     double newOxygenLevel = getOxygenLevel(plant, air);
                     air.setOxygenLevel(newOxygenLevel);
                 }
@@ -334,31 +336,39 @@ public class Commands extends InputParams {
             return 0;
         }
 
-        final int count = cell.size();
-
         double possibilityToGetStuckInSoil = 0.0;
         double possibilityToGetDamagedByAir = 0.0;
         double possibilityToBeAttackedByAnimal = 0.0;
         double possibilityToGetStuckInPlants = 0.0;
+
+        int validEntitiesCount = 0;
 
         for (InputParams param : cell) {
             if (param instanceof AirInput a) {
                 a.calculateAirQuality();
                 a.calculateToxicity();
                 possibilityToGetDamagedByAir = a.getToxicityAQ();
+                validEntitiesCount++;
             } else if (param instanceof SoilInput s) {
                 possibilityToGetStuckInSoil = s.calculateBlockProbability();
+                validEntitiesCount++;
             } else if (param instanceof PlantInput p) {
                 possibilityToGetStuckInPlants = p.calculateBlockProbability();
+                validEntitiesCount++;
             } else if (param instanceof AnimalInput an) {
                 possibilityToBeAttackedByAnimal = an.calculateAttackProbability();
+                validEntitiesCount++;
             }
+        }
+
+        if (validEntitiesCount == 0) {
+            return 0;
         }
 
         double sum = possibilityToGetStuckInSoil + possibilityToGetDamagedByAir +
                 possibilityToBeAttackedByAnimal + possibilityToGetStuckInPlants;
 
-        double mean = Math.abs(sum / count);
+        double mean = Math.abs(sum / validEntitiesCount);
 
         return Math.round(mean);
     }

@@ -31,6 +31,7 @@ public final class AirInput extends InputParams {
     private double airQuality;
     private boolean toxicity;
     private double toxicityAQ;
+    private boolean scanned = false;
 
     public Map.Entry<String, Double> getSpecificAirField() {
         return switch (this.getType()) {
@@ -117,7 +118,7 @@ public final class AirInput extends InputParams {
             case "MountainAir" -> updatedQuality -= (numberOfHikers * 0.1);
         }
 
-        double normalizeScore = Math.max(0.0, Math.min(100.0, updatedQuality));
+        double normalizeScore = Math.clamp(updatedQuality, 0.0, 100.0);
         this.airQuality = Math.round(normalizeScore * 100.0) / 100.0;
 
         this.calculateToxicity();
