@@ -45,7 +45,6 @@ public final class Main {
         List<List<List<InputParams>>> map = new ArrayList<>();
         int crtSimulation = 0;
         long energyLvl = -1;
-        boolean startedRecharge = false;
         int nextAction = 0;
 
         for (CommandInput commandInput : inputLoader.getCommands()) {
@@ -62,6 +61,11 @@ public final class Main {
             if (nextAction > commandInput.getTimestamp()) {
                 Exceptions.printError(objectMapper, output, commandInput,
                         "ERROR: Robot still charging. Cannot perform action");
+                continue;
+            }
+            if (!commandInput.getCommand().equals("stopSimulation") &&
+                !commandInput.getCommand().equals("startSimulation")) {
+                map = Commands.updateMap(map, commandInput.getTimestamp());
             }
             switch (commandInput.getCommand()) {
                 case "startSimulation":
@@ -79,21 +83,17 @@ public final class Main {
                     energyLvl = -1;
                     break;
                 case "printEnvConditions":
-                    map = Commands.updateMap(map, commandInput.getTimestamp());
-
                     OutPrint.printEnvironment(objectMapper, output,
                             map.get(robotPosition.getY()).get(robotPosition.getX()),
                             commandInput.getTimestamp());
                     break;
                 case "printMap" :
-                    map = Commands.updateMap(map, commandInput.getTimestamp());
                     OutPrint.printMap(objectMapper, output, map, commandInput.getTimestamp());
                     break;
                 case "getEnergyStatus" :
                     OutPrint.printGetEnergyStatus(objectMapper, output, commandInput, energyLvl);
                     break;
                 case "moveRobot" :
-                    map = Commands.updateMap(map, commandInput.getTimestamp());
                     final PairInput nextPos = Commands.pickNextBestCell(map, robotPosition);
 
                     if (nextPos != null) {
@@ -110,7 +110,28 @@ public final class Main {
                 case "rechargeBattery" :
                     energyLvl = energyLvl + commandInput.getTimeToCharge();
                     nextAction = commandInput.getTimestamp() + commandInput.getTimeToCharge();
-                    OutPrint.printRechargeBattery(objectMapper, output, commandInput);
+                    OutPrint.printMessageRobot(objectMapper, output, commandInput,
+                            "Robot battery is charging.");
+                    break;
+                case "scanObject":
+                    if (energyLvl < 7) {
+                        Exceptions.printError(objectMapper, output, commandInput,
+                                "ERROR: Not enough energy to perform action");
+                        continue;
+                    }
+                    String type = Commands.scanObject(commandInput, map, robotPosition);
+
+                    if (type != null) {
+                        String message = "The scanned object is " + type + ".";
+                        OutPrint.printMessageRobot(objectMapper, output, commandInput,
+                                message);
+                        energyLvl -= 7;
+                    } else {
+                        Exceptions.printError(objectMapper, output, commandInput,
+                                "ERROR: Object not found. Cannot perform action");
+                        continue;
+                    }
+                    break;
             }
         }
 

@@ -23,7 +23,6 @@ public final class PlantInput extends InputParams {
     public double getOxygenContribution() {
         double baseOxygen = switch (this.getType()) {
             case "FloweringPlants" -> 6.0;
-            case "GymnospermsPlants", "Ferns" -> 0.0;
             case "Mosses" -> 0.8;
             case "Algae" -> 0.5;
             default -> 0.0;

@@ -145,8 +145,8 @@ public class Commands extends InputParams {
         int rows = map.size();
         int cols = map.getFirst().size();
 
-        int[] dx = {-1, 0, 1, 0};
-        int[] dy = {0, 1, 0, -1};
+        int[] dx = { 1, 0, -1, 0 };
+        int[] dy = { 0, 1, 0, -1 };
 
         int bestX = -1, bestY = -1;
         int priorityLevel = 4;
@@ -238,30 +238,34 @@ public class Commands extends InputParams {
                     else if (param instanceof AnimalInput an) animal = an;
                 }
 
-                if (air != null && air.isScanned() && animal != null && animal.isScanned()) {
+                if (air != null && animal != null && animal.isScanned()) {
                     if (air.isToxicity()) {
                         animal.setStatus("sick");
                     }
                 }
 
                 if (soil != null && soil.isScanned() && plant != null && plant.isScanned()) {
-                    plant.setMass(plant.getMass() + 0.2);
+                    plant.addGrowth(0.2);
                 }
 
                 if (water != null && water.isScanned()) {
-                    if (soil != null && soil.isScanned() && iter % 2 == 1) {
+                    if (soil != null && iter % 2 == 1) {
                         soil.setWaterRetention(soil.getWaterRetention() + 0.1);
                     }
-                    if (air != null && air.isScanned() && iter % 2 == 1) {
-                        air.setHumidity(air.getHumidity() + 0.1);
+                    if (air != null && iter % 2 == 1) {
+                        double humidity = air.getHumidity() + 0.1;
+                        double normalizeScore = Math.clamp(humidity, 0, 100);
+                        humidity = Math.round(normalizeScore * 100.0) / 100.0;
+                        air.setHumidity(humidity);
                     }
                     if (plant != null && plant.isScanned()) {
-                        plant.setMass(plant.getMass() + 0.2);
+                        plant.addGrowth(0.2);
                     }
                 }
 
-                if (air != null && air.isScanned() && plant != null && plant.isScanned()) {
-                    double newOxygenLevel = getOxygenLevel(plant, air);
+                if (air != null && plant != null && plant.isScanned()) {
+                    double newOxygenLevel = air.getOxygenLevel() +
+                                plant.getOxygenContribution();
                     air.setOxygenLevel(newOxygenLevel);
                 }
 
@@ -281,29 +285,14 @@ public class Commands extends InputParams {
                 if (soil != null) {
                     soil.calculateSoilQuality();
                 }
+
+                if (plant != null && "dead".equals(plant.getStatus())) {
+                    cell.remove(plant);
+                }
             }
         }
 
         return map;
-    }
-
-    private static double getOxygenLevel(PlantInput plant, AirInput air) {
-        double oxygenFromPlant = switch (plant.getType()) {
-            case "FloweringPlants" -> 6.0;
-            case "GymnospermsPlants", "Ferns" -> 0.0;
-            case "Mosses" -> 0.8;
-            case "Algae" -> 0.5;
-            default -> 0.0;
-        };
-
-        double maturityOxygenRate = switch (plant.getStatus().toLowerCase()) {
-            case "young" -> 0.2;
-            case "mature" -> 0.7;
-            case "old" -> 0.4;
-            default -> 0.0;
-        };
-
-        return air.getOxygenLevel() + oxygenFromPlant + maturityOxygenRate;
     }
 
     public static PairInput pickNextBestCell(List<List<List<InputParams>>> map, PairInput crtCell) {
@@ -316,8 +305,8 @@ public class Commands extends InputParams {
         int currentX = crtCell.getX();
         int currentY = crtCell.getY();
 
-        int[] dx = { 0, 1, 0, -1 };
-        int[] dy = { 1, 0, -1, 0 };
+        int[] dx = { 1, 0, -1, 0 };
+        int[] dy = { 0, 1, 0, -1 };
 
         for (int i = 0; i < 4; i++) {
             int nx = currentX + dx[i];
@@ -381,5 +370,40 @@ public class Commands extends InputParams {
         double mean = Math.abs(sum / validEntitiesCount);
 
         return Math.round(mean);
+    }
+
+    public static String scanObject(final CommandInput commandInput,
+                                    final List<List<List<InputParams>>> map,
+                                    final PairInput crtPos) {
+        final int x = crtPos.getX(), y = crtPos.getY();
+        String color = commandInput.getColor();
+        String smell = commandInput.getSmell();
+        String sound = commandInput.getSound();
+
+        String type = null;
+        if ("none".equals(color)) {
+            type = "water";
+        } else if ("none".equals(sound)) {
+            type = "plant";
+        } else {
+            type = "animal";
+        }
+
+        List<InputParams> crtMapPos = map.get(y).get(x);
+        for (InputParams param : crtMapPos) {
+            if (param instanceof WaterInput w && type.equals("water")) {
+                w.setScanned(true);
+                return "water";
+            }
+            else if (param instanceof PlantInput p && type.equals("plant")) {
+                p.setScanned(true);
+                return "a plant";
+            }
+            else if (param instanceof AnimalInput a && type.equals("animal")) {
+                a.setScanned(true);
+                return "an animal";
+            }
+        }
+        return null;
     }
 }
