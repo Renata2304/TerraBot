@@ -45,6 +45,8 @@ public final class Main {
         List<List<List<InputParams>>> map = new ArrayList<>();
         int crtSimulation = 0;
         long energyLvl = -1;
+        boolean startedRecharge = false;
+        int nextAction = 0;
 
         for (CommandInput commandInput : inputLoader.getCommands()) {
             if (!hasSimulationStarted && !commandInput.getCommand().equals("startSimulation")) {
@@ -56,6 +58,10 @@ public final class Main {
                 Exceptions.printError(objectMapper, output, commandInput,
                         "ERROR: Simulation already started. Cannot perform action");
                 continue;
+            }
+            if (nextAction > commandInput.getTimestamp()) {
+                Exceptions.printError(objectMapper, output, commandInput,
+                        "ERROR: Robot still charging. Cannot perform action");
             }
             switch (commandInput.getCommand()) {
                 case "startSimulation":
@@ -73,7 +79,7 @@ public final class Main {
                     energyLvl = -1;
                     break;
                 case "printEnvConditions":
-//                    map = Commands.updateMap(map, commandInput.getTimestamp());
+                    map = Commands.updateMap(map, commandInput.getTimestamp());
 
                     OutPrint.printEnvironment(objectMapper, output,
                             map.get(robotPosition.getY()).get(robotPosition.getX()),
@@ -87,16 +93,24 @@ public final class Main {
                     OutPrint.printGetEnergyStatus(objectMapper, output, commandInput, energyLvl);
                     break;
                 case "moveRobot" :
+                    map = Commands.updateMap(map, commandInput.getTimestamp());
                     final PairInput nextPos = Commands.pickNextBestCell(map, robotPosition);
+
                     if (nextPos != null) {
                         final List<InputParams> nextCell = map.get(nextPos.getY()).get(nextPos.getX());
                         final long quality = Commands.getCellQuality(nextCell);
+                        long oldEnergy = energyLvl;
                         energyLvl = OutPrint.printMoveRobot(objectMapper, output, commandInput, nextPos, quality, energyLvl);
-
-                        robotPosition.setX(nextPos.getX());
-                        robotPosition.setY(nextPos.getY());
+                        if (energyLvl != oldEnergy) {
+                            robotPosition.setX(nextPos.getX());
+                            robotPosition.setY(nextPos.getY());
+                        }
                     }
                     break;
+                case "rechargeBattery" :
+                    energyLvl = energyLvl + commandInput.getTimeToCharge();
+                    nextAction = commandInput.getTimestamp() + commandInput.getTimeToCharge();
+                    OutPrint.printRechargeBattery(objectMapper, output, commandInput);
             }
         }
 

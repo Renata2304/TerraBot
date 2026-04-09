@@ -165,4 +165,14 @@ public class OutPrint extends InputParams{
 
         return energyLvl;
     }
+
+    public static void printRechargeBattery (final ObjectMapper objectMapper, final ArrayNode output,
+                                             final CommandInput commandInput) {
+        ObjectNode message = objectMapper.createObjectNode();
+        message.put("command", commandInput.getCommand());
+        message.put("message", "Robot battery is charging.");
+        message.put("timestamp", commandInput.getTimestamp());
+
+        output.add(message);
+    }
 }

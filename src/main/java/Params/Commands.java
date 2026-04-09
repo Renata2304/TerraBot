@@ -143,7 +143,7 @@ public class Commands extends InputParams {
     public static void processAnimalMovement(AnimalInput animal, int currentX, int currentY,
                                              List<List<List<InputParams>>> map) {
         int rows = map.size();
-        int cols = map.get(0).size();
+        int cols = map.getFirst().size();
 
         int[] dx = {-1, 0, 1, 0};
         int[] dy = {0, 1, 0, -1};
@@ -205,9 +205,22 @@ public class Commands extends InputParams {
         int rows = map.size();
         int cols = map.getFirst().size();
 
-        for (int y = 0; y < rows; y++) {
-            for (int x = 0; x < cols; x++) {
-                List<InputParams> cell = map.get(y).get(x);
+        for (List<List<InputParams>> lists : map) {
+            for (int y = 0; y < cols; y++) {
+                List<InputParams> cell = lists.get(y);
+                if (cell != null) {
+                    for (InputParams param : cell) {
+                        if (param instanceof AnimalInput an) {
+                            an.setMovedThisTurn(false);
+                        }
+                    }
+                }
+            }
+        }
+
+        for (int x = 0; x < rows; x++) {
+            for (int y = 0; y < cols; y++) {
+                List<InputParams> cell = map.get(x).get(y);
                 if (cell == null || cell.isEmpty()) {
                     continue;
                 }
@@ -252,16 +265,13 @@ public class Commands extends InputParams {
                     air.setOxygenLevel(newOxygenLevel);
                 }
 
-                if (animal != null) {
-                    if (animal.isScanned()) {
+                if (animal != null && animal.isScanned()) {
+                    if (!animal.hasMovedThisTurn()) {
                         processAnimalFeeding(animal, cell);
-
                         if (iter % 2 == 1) {
-                            if (!animal.hasMovedThisTurn()) {
-                                processAnimalMovement(animal, y, x, map);
-                                animal.setMovedThisTurn(true);
-                            }
+                            processAnimalMovement(animal, x, y, map);
                         }
+                        animal.setMovedThisTurn(true);
                     }
                 }
 
@@ -298,7 +308,7 @@ public class Commands extends InputParams {
 
     public static PairInput pickNextBestCell(List<List<List<InputParams>>> map, PairInput crtCell) {
         PairInput bestCell = null;
-        int bestScore = Integer.MAX_VALUE;
+        long bestScore = -1;
 
         int rows = map.size();
         int cols = map.getFirst().size();
@@ -306,17 +316,17 @@ public class Commands extends InputParams {
         int currentX = crtCell.getX();
         int currentY = crtCell.getY();
 
-        int[] dx = {0, 1, 0, -1};
-        int[] dy = {-1, 0, 1, 0};
+        int[] dx = { 0, 1, 0, -1 };
+        int[] dy = { 1, 0, -1, 0 };
 
         for (int i = 0; i < 4; i++) {
             int nx = currentX + dx[i];
             int ny = currentY + dy[i];
 
-            if (ny >= 0 && ny < rows && nx >= 0 && nx < cols) {
+            if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
                 List<InputParams> neighborCell = map.get(ny).get(nx);
 
-                int currentScore = (int) getCellQuality(neighborCell);
+                long currentScore = getCellQuality(neighborCell);
 
                 if (bestCell == null || currentScore < bestScore) {
                     bestScore = currentScore;
