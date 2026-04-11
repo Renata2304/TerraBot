@@ -2,6 +2,8 @@ package Params;
 
 import fileio.*;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -174,21 +176,18 @@ public class Commands extends InputParams {
                 }
 
                 if (hasPlant && hasWater) {
-                    if (priorityLevel > 1 || waterQuality > bestWaterQuality) {
+                    if (waterQuality > bestWaterQuality) {
                         bestX = nx; bestY = ny;
-                        priorityLevel = 1;
                         bestWaterQuality = waterQuality;
                     }
-                } else if (hasPlant && priorityLevel > 2) {
+                } else if (hasPlant) {
                     bestX = nx; bestY = ny;
-                    priorityLevel = 2;
-                } else if (hasWater && priorityLevel >= 3) {
-                    if (priorityLevel > 3 || waterQuality > bestWaterQuality) {
+                } else if (hasWater) {
+                    if (waterQuality > bestWaterQuality) {
                         bestX = nx; bestY = ny;
-                        priorityLevel = 3;
                         bestWaterQuality = waterQuality;
                     }
-                } else if (priorityLevel > 3 && bestX == -1) {
+                } else if (bestX == -1) {
                     bestX = nx; bestY = ny;
                 }
             }
@@ -238,19 +237,21 @@ public class Commands extends InputParams {
                     else if (param instanceof AnimalInput an) animal = an;
                 }
 
-                if (air != null && animal != null && animal.isScanned()) {
-                    if (air.isToxicity()) {
-                        animal.setStatus("sick");
-                    }
-                }
+//                if (air != null && animal != null && animal.isScanned()) {
+//                    if (air.isToxicity()) {
+//                        animal.setStatus("sick");
+//                    }
+//                }
 
-                if (soil != null && soil.isScanned() && plant != null && plant.isScanned()) {
+                if (soil != null && plant != null && plant.isScanned()) {
                     plant.addGrowth(0.2);
                 }
 
                 if (water != null && water.isScanned()) {
                     if (soil != null && iter % 2 == 1) {
-                        soil.setWaterRetention(soil.getWaterRetention() + 0.1);
+                        BigDecimal bd = new BigDecimal(soil.getWaterRetention() +
+                                0.1).setScale(2, RoundingMode.HALF_UP);
+                        soil.setWaterRetention(bd.doubleValue());
                     }
                     if (air != null && iter % 2 == 1) {
                         double humidity = air.getHumidity() + 0.1;
@@ -264,14 +265,17 @@ public class Commands extends InputParams {
                 }
 
                 if (air != null && plant != null && plant.isScanned()) {
-                    double newOxygenLevel = air.getOxygenLevel() +
-                                plant.getOxygenContribution();
-                    air.setOxygenLevel(newOxygenLevel);
+                    if (!"dead".equals(plant.getStatus())) {
+                        double newOxygenLevel = air.getOxygenLevel() + plant.getOxygenContribution();
+
+                        BigDecimal bd = new BigDecimal(newOxygenLevel).setScale(2, RoundingMode.HALF_UP);
+                        air.setOxygenLevel(bd.doubleValue());
+                    }
                 }
 
                 if (animal != null && animal.isScanned()) {
+                    processAnimalFeeding(animal, cell);
                     if (!animal.hasMovedThisTurn()) {
-                        processAnimalFeeding(animal, cell);
                         if (iter % 2 == 1) {
                             processAnimalMovement(animal, x, y, map);
                         }

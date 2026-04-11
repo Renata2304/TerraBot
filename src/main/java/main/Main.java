@@ -63,7 +63,7 @@ public final class Main {
                         "ERROR: Robot still charging. Cannot perform action");
                 continue;
             }
-            if (!commandInput.getCommand().equals("stopSimulation") &&
+            if (!commandInput.getCommand().equals("endSimulation") &&
                 !commandInput.getCommand().equals("startSimulation")) {
                 map = Commands.updateMap(map, commandInput.getTimestamp());
             }
