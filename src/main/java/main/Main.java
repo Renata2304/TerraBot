@@ -1,18 +1,16 @@
 package main;
 
-import Params.Commands;
-import Params.Exceptions;
-import Params.OutPrint;
+import params.Commands;
+import params.Exceptions;
+import params.OutPrint;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import fileio.*;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 
@@ -84,7 +82,7 @@ public final class Main {
                     break;
                 case "printEnvConditions":
                     OutPrint.printEnvironment(objectMapper, output,
-                            map.get(robotPosition.getY()).get(robotPosition.getX()),
+                            map.get(robotPosition.getX()).get(robotPosition.getY()),
                             commandInput.getTimestamp());
                     break;
                 case "printMap" :
@@ -97,7 +95,7 @@ public final class Main {
                     final PairInput nextPos = Commands.pickNextBestCell(map, robotPosition);
 
                     if (nextPos != null) {
-                        final List<InputParams> nextCell = map.get(nextPos.getY()).get(nextPos.getX());
+                        final List<InputParams> nextCell = map.get(nextPos.getX()).get(nextPos.getY());
                         final long quality = Commands.getCellQuality(nextCell);
                         long oldEnergy = energyLvl;
                         energyLvl = OutPrint.printMoveRobot(objectMapper, output, commandInput, nextPos, quality, energyLvl);

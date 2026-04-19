@@ -26,6 +26,11 @@ public class WaterInput extends InputParams {
     private final String entity = "water";
     private boolean scanned = false;
     private double waterQuality;
+    private int scanTimestamp;
+    private boolean actedOnSoilThisTurn = false;
+    private boolean actedOnAirThisTurn = false;
+    private long lastActedOnSoilTimestamp = -1;
+    private long lastActedOnAirTimestamp = -1;
 
     public double calculateWaterQuality() {
         double purityScore = this.purity / 100.0;
@@ -42,7 +47,7 @@ public class WaterInput extends InputParams {
                 + 0.15 * contaminantScore
                 + 0.2 * frozenScore) * 100.0;
 
-        double normalizeScore = Math.max(0.0, Math.min(100.0, calculatedQuality));
+        double normalizeScore = Math.clamp(calculatedQuality, 0.0, 100.0);
         this.waterQuality = Math.round(normalizeScore * 100.0) / 100.0;
 
         return this.waterQuality;

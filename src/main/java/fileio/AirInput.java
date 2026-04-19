@@ -32,6 +32,8 @@ public final class AirInput extends InputParams {
     private boolean toxicity;
     private double toxicityAQ;
     private boolean scanned = false;
+    private boolean qualityUpdatedThisTurn =  false;
+    private long lastQualityUpdateTimestamp = -1;
 
     public Map.Entry<String, Double> getSpecificAirField() {
         return switch (this.getType()) {
@@ -47,21 +49,21 @@ public final class AirInput extends InputParams {
 
     public double calculateAirQuality() {
         double calculatedQuality = switch (this.getType()) {
-            case "TropicalAir" -> (this.oxygenLevel * 2) +
-                    (this.humidity * 0.5) -
-                    (this.co2Level * 0.01);
-            case "PolarAir" -> (this.oxygenLevel * 2) +
-                    (100 - Math.abs(this.temperature)) -
-                    (this.iceCrystalConcentration * 0.05);
-            case "TemperateAir" -> (this.oxygenLevel * 2) +
-                    (this.humidity * 0.7) -
-                    (this.pollenLevel * 0.1);
-            case "DesertAir" -> (this.oxygenLevel * 2) -
-                    (this.dustParticles * 0.2) -
-                    (this.temperature * 0.3);
+            case "TropicalAir" -> (this.oxygenLevel * 2)
+                    + (this.humidity * 0.5)
+                    - (this.co2Level * 0.01);
+            case "PolarAir" -> (this.oxygenLevel * 2)
+                    + (100 - Math.abs(this.temperature))
+                    - (this.iceCrystalConcentration * 0.05);
+            case "TemperateAir" -> (this.oxygenLevel * 2)
+                    + (this.humidity * 0.7)
+                    - (this.pollenLevel * 0.1);
+            case "DesertAir" -> (this.oxygenLevel * 2)
+                    - (this.dustParticles * 0.2)
+                    - (this.temperature * 0.3);
             case "MountainAir" -> {
-                double oxygenFactor = this.oxygenLevel -
-                        (this.altitude / 1000 * 0.5);
+                double oxygenFactor = this.oxygenLevel
+                        - (this.altitude / 1000 * 0.5);
                 yield (oxygenFactor * 2) + (this.humidity * 0.6);
             }
             default -> 0.0;
@@ -69,6 +71,9 @@ public final class AirInput extends InputParams {
 
         double normalizeScore = Math.clamp(calculatedQuality, 0, 100);
         this.airQuality = Math.round(normalizeScore * 100.0) / 100.0;
+
+        normalizeScore = Math.clamp(this.co2Level, 0, 100);
+        this.co2Level = Math.round(normalizeScore * 100.0) / 100.0;
         return this.airQuality;
     }
 
@@ -94,6 +99,8 @@ public final class AirInput extends InputParams {
     }
 
     public void calculateToxicity() {
+        double normalizeScore = Math.clamp(this.airQuality, 0, 100);
+        this.airQuality = Math.round(normalizeScore * 100.0) / 100.0;
         double maxScore = this.getMaxScore();
         double toxicityRaw = 100.0 * (1.0 - this.airQuality / maxScore);
 
@@ -134,5 +141,6 @@ public final class AirInput extends InputParams {
                               this.getSpecificAirField().getValue()));
         return details;
     }
+
 }
 

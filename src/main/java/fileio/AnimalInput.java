@@ -21,10 +21,10 @@ public final class AnimalInput extends InputParams {
     private double pendingFertilizer = 0.0;
 
     private final String entity = "animals";
-
-    public boolean hasMovedThisTurn() {
-        return movedThisTurn;
-    }
+    private int scanTimestamp;
+    private boolean fedThisTurn = false;
+    private long lastFedTimestamp = -1;
+    private long lastMovedTimestamp = -1;
 
     public double calculateAttackProbability() {
         int possibility = switch (this.getType()) {

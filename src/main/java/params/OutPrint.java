@@ -1,12 +1,10 @@
-package Params;
+package params;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import fileio.*;
 
-import javax.print.attribute.standard.Finishings;
-import javax.xml.stream.events.StartDocument;
 import java.util.List;
 import java.util.Map;
 
@@ -106,12 +104,12 @@ public class OutPrint extends InputParams{
 
         if (!map.isEmpty()) {
             int nrOfRows = map.size();
-            int nrOfCols = map.get(0).size();
+            int nrOfCols = map.getFirst().size();
 
-            for (int y = 0; y < nrOfCols; y++) {
-                for (int x = 0; x < nrOfRows; x++) {
-                    List<InputParams> cellParams = map.get(x).get(y);
-                    ObjectNode cellOutput = printHelperMap(objectMapper, cellParams, x, y);
+            for (int x = 0; x < nrOfRows; x++) {
+                for (int y = 0; y < nrOfCols; y++) {
+                    List<InputParams> cellParams = map.get(y).get(x);
+                    ObjectNode cellOutput = printHelperMap(objectMapper, cellParams, y, x);
 
                     if (!cellOutput.isEmpty()) {
                         envConditions.add(cellOutput);
@@ -155,7 +153,7 @@ public class OutPrint extends InputParams{
             ObjectNode message = objectMapper.createObjectNode();
             message.put("command", commandInput.getCommand());
             message.put("message", "The robot has successfully moved to position (" +
-                    posToMove.getY() + ", " + posToMove.getX() + ").");
+                    posToMove.getX() + ", " + posToMove.getY() + ").");
             message.put("timestamp", commandInput.getTimestamp());
 
             output.add(message);

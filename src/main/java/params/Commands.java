@@ -1,11 +1,13 @@
-package Params;
+package params;
 
 import fileio.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class Commands extends InputParams {
 
@@ -116,11 +118,13 @@ public class Commands extends InputParams {
 
                 animal.setMass(animal.getMass() + waterToDrink + plant.getMass());
                 animal.setPendingFertilizer(0.8);
+                plant.setStatus("dead");
                 cell.remove(plant);
                 hasEaten = true;
             } else if (plantUnlocked) {
                 animal.setMass(animal.getMass() + plant.getMass());
                 animal.setPendingFertilizer(0.5);
+                plant.setStatus("dead");
                 cell.remove(plant);
                 hasEaten = true;
             } else if (waterUnlocked) {
@@ -147,11 +151,10 @@ public class Commands extends InputParams {
         int rows = map.size();
         int cols = map.getFirst().size();
 
-        int[] dx = { 1, 0, -1, 0 };
-        int[] dy = { 0, 1, 0, -1 };
+        int[] dx = { 0, 1, 0, -1 };
+        int[] dy = { 1, 0, -1, 0 };
 
         int bestX = -1, bestY = -1;
-        int priorityLevel = 4;
         double bestWaterQuality = -1.0;
 
         for (int i = 0; i < 4; i++) {
@@ -200,7 +203,7 @@ public class Commands extends InputParams {
     }
 
     public static List<List<List<InputParams>>> updateMap(List<List<List<InputParams>>> map,
-                                                          final int iter) {
+                                                          final long currentTimestamp) {
         int rows = map.size();
         int cols = map.getFirst().size();
 
@@ -211,6 +214,18 @@ public class Commands extends InputParams {
                     for (InputParams param : cell) {
                         if (param instanceof AnimalInput an) {
                             an.setMovedThisTurn(false);
+                            an.setFedThisTurn(false);
+                        } else if (param instanceof PlantInput p) {
+                            p.setGrownFromSoilThisTurn(false);
+                            p.setGrownFromWaterThisTurn(false);
+                            p.setBreathedThisTurn(false);
+                        } else if (param instanceof WaterInput w) {
+                            w.setActedOnSoilThisTurn(false);
+                            w.setActedOnAirThisTurn(false);
+                        } else if (param instanceof AirInput a) {
+                            a.setQualityUpdatedThisTurn(false);
+                        } else if (param instanceof SoilInput s) {
+                            s.setQualityUpdatedThisTurn(false);
                         }
                     }
                 }
@@ -223,6 +238,7 @@ public class Commands extends InputParams {
                 if (cell == null || cell.isEmpty()) {
                     continue;
                 }
+
                 AirInput air = null;
                 SoilInput soil = null;
                 WaterInput water = null;
@@ -237,57 +253,79 @@ public class Commands extends InputParams {
                     else if (param instanceof AnimalInput an) animal = an;
                 }
 
-//                if (air != null && animal != null && animal.isScanned()) {
-//                    if (air.isToxicity()) {
-//                        animal.setStatus("sick");
-//                    }
-//                }
-
                 if (soil != null && plant != null && plant.isScanned()) {
-                    plant.addGrowth(0.2);
+                    if (!plant.isGrownFromSoilThisTurn()) {
+                        plant.addGrowth(0.2);
+                        plant.setGrownFromSoilThisTurn(true);
+                    }
                 }
 
                 if (water != null && water.isScanned()) {
-                    if (soil != null && iter % 2 == 1) {
-                        BigDecimal bd = new BigDecimal(soil.getWaterRetention() +
-                                0.1).setScale(2, RoundingMode.HALF_UP);
-                        soil.setWaterRetention(bd.doubleValue());
+                    long timeSinceWaterScan = currentTimestamp - water.getScanTimestamp();
+
+                    if (timeSinceWaterScan >= 2 && timeSinceWaterScan % 2 == 0) {
+                        if (soil != null && !water.isActedOnSoilThisTurn()) {
+                            BigDecimal bd = new BigDecimal(soil.getWaterRetention() + 0.1)
+                                    .setScale(2, RoundingMode.HALF_UP);
+                            soil.setWaterRetention(bd.doubleValue());
+                            water.setActedOnSoilThisTurn(true);
+                        }
                     }
-                    if (air != null && iter % 2 == 1) {
-                        double humidity = air.getHumidity() + 0.1;
-                        double normalizeScore = Math.clamp(humidity, 0, 100);
-                        humidity = Math.round(normalizeScore * 100.0) / 100.0;
-                        air.setHumidity(humidity);
+
+                    if (timeSinceWaterScan % 2 == 0) {
+                        if (air != null && !water.isActedOnAirThisTurn()) {
+                            double humidity = air.getHumidity() + 0.1;
+                            double normalizeScore = Math.clamp(humidity, 0.0, 100.0);
+                            humidity = Math.round(normalizeScore * 100.0) / 100.0;
+                            air.setHumidity(humidity);
+                            water.setActedOnAirThisTurn(true);
+                        }
                     }
+
                     if (plant != null && plant.isScanned()) {
-                        plant.addGrowth(0.2);
+                        if (!plant.isGrownFromWaterThisTurn()) {
+                            plant.addGrowth(0.2);
+                            plant.setGrownFromWaterThisTurn(true);
+                        }
                     }
                 }
 
                 if (air != null && plant != null && plant.isScanned()) {
                     if (!"dead".equals(plant.getStatus())) {
-                        double newOxygenLevel = air.getOxygenLevel() + plant.getOxygenContribution();
-
-                        BigDecimal bd = new BigDecimal(newOxygenLevel).setScale(2, RoundingMode.HALF_UP);
-                        air.setOxygenLevel(bd.doubleValue());
+                        if (!plant.isBreathedThisTurn()) {
+                            double newOxygenLevel = air.getOxygenLevel() +
+                                    plant.getOxygenContribution();
+                            BigDecimal bd = new BigDecimal(newOxygenLevel).
+                                    setScale(2, RoundingMode.HALF_UP);
+                            air.setOxygenLevel(bd.doubleValue());
+                            plant.setBreathedThisTurn(true);
+                        }
                     }
                 }
 
                 if (animal != null && animal.isScanned()) {
-                    processAnimalFeeding(animal, cell);
-                    if (!animal.hasMovedThisTurn()) {
-                        if (iter % 2 == 1) {
+                    long timeSinceAnimalScan = currentTimestamp - animal.getScanTimestamp();
+
+                    if (!animal.isFedThisTurn()) {
+                        processAnimalFeeding(animal, cell);
+                        animal.setFedThisTurn(true);
+                    }
+
+                    if (!animal.isMovedThisTurn()) {
+                        if (timeSinceAnimalScan >= 2 && timeSinceAnimalScan % 2 == 0) {
                             processAnimalMovement(animal, x, y, map);
                         }
                         animal.setMovedThisTurn(true);
                     }
                 }
 
-                if (air != null) {
+                if (air != null && !air.isQualityUpdatedThisTurn()) {
                     air.calculateAirQuality();
+                    air.setQualityUpdatedThisTurn(true);
                 }
-                if (soil != null) {
+                if (soil != null && !soil.isQualityUpdatedThisTurn()) {
                     soil.calculateSoilQuality();
+                    soil.setQualityUpdatedThisTurn(true);
                 }
 
                 if (plant != null && "dead".equals(plant.getStatus())) {
@@ -301,7 +339,7 @@ public class Commands extends InputParams {
 
     public static PairInput pickNextBestCell(List<List<List<InputParams>>> map, PairInput crtCell) {
         PairInput bestCell = null;
-        long bestScore = -1;
+        long bestScore = Integer.MAX_VALUE;
 
         int rows = map.size();
         int cols = map.getFirst().size();
@@ -309,15 +347,15 @@ public class Commands extends InputParams {
         int currentX = crtCell.getX();
         int currentY = crtCell.getY();
 
-        int[] dx = { 1, 0, -1, 0 };
-        int[] dy = { 0, 1, 0, -1 };
+        int[] dx = { 0, 1, 0, -1 };
+        int[] dy = { 1, 0, -1, 0 };
 
         for (int i = 0; i < 4; i++) {
             int nx = currentX + dx[i];
             int ny = currentY + dy[i];
 
-            if (nx >= 0 && nx < cols && ny >= 0 && ny < rows) {
-                List<InputParams> neighborCell = map.get(ny).get(nx);
+            if (nx >= 0 && nx < rows && ny >= 0 && ny < cols) {
+                List<InputParams> neighborCell = map.get(nx).get(ny);
 
                 long currentScore = getCellQuality(neighborCell);
 
@@ -371,7 +409,7 @@ public class Commands extends InputParams {
         double sum = possibilityToGetStuckInSoil + possibilityToGetDamagedByAir +
                 possibilityToBeAttackedByAnimal + possibilityToGetStuckInPlants;
 
-        double mean = Math.abs(sum / validEntitiesCount);
+        double mean = sum / validEntitiesCount;
 
         return Math.round(mean);
     }
@@ -393,18 +431,21 @@ public class Commands extends InputParams {
             type = "animal";
         }
 
-        List<InputParams> crtMapPos = map.get(y).get(x);
+        List<InputParams> crtMapPos = map.get(x).get(y);
         for (InputParams param : crtMapPos) {
             if (param instanceof WaterInput w && type.equals("water")) {
                 w.setScanned(true);
+                w.setScanTimestamp(commandInput.getTimestamp());
                 return "water";
             }
             else if (param instanceof PlantInput p && type.equals("plant")) {
                 p.setScanned(true);
+                p.setScanTimestamp(commandInput.getTimestamp());
                 return "a plant";
             }
             else if (param instanceof AnimalInput a && type.equals("animal")) {
                 a.setScanned(true);
+                a.setScanTimestamp(commandInput.getTimestamp());
                 return "an animal";
             }
         }

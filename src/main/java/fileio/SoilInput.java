@@ -28,8 +28,9 @@ public final class SoilInput extends InputParams {
 
     private final String entity = "soil";
     private boolean scanned = false;
-
     private double soilQuality;
+    private boolean qualityUpdatedThisTurn = false;
+    private long lastQualityUpdateTimestamp = -1;
 
     public double calculateSoilQuality() {
         double qualityRaw = switch (this.getType()) {
@@ -94,5 +95,6 @@ public final class SoilInput extends InputParams {
                               this.getSpecificSoilField().getValue()));
         return details;
     }
+
 }
 

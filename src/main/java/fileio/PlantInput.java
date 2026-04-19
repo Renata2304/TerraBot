@@ -17,8 +17,15 @@ public final class PlantInput extends InputParams {
     private double growthLevel = 0.0;
     private String status = "young";
     private boolean scanned =  false;
+    private int scanTimestamp;
 
     private final String entity = "plants";
+    private boolean grownFromSoilThisTurn =  false;
+    private boolean grownFromWaterThisTurn = false;
+    private boolean breathedThisTurn = false;
+    private long lastGrowthSoilTimestamp = -1;
+    private long lastGrowthWaterTimestamp = -1;
+    private long lastBreathedTimestamp = -1;
 
     public double getOxygenContribution() {
         double baseOxygen = switch (this.getType()) {
@@ -40,8 +47,8 @@ public final class PlantInput extends InputParams {
 
     public double calculateBlockProbability() {
         int possibility = switch (this.getType()) {
-            case "FloweringPlants", "Flowering Plants (Angiosperms)" -> 90;
-            case "GymnospermsPlants", "Gymnosperms" -> 60;
+            case "FloweringPlants" -> 90;
+            case "GymnospermsPlants" -> 60;
             case "Ferns" -> 30;
             case "Mosses" -> 40;
             case "Algae" -> 20;
