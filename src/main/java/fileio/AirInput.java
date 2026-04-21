@@ -33,7 +33,7 @@ public final class AirInput extends InputParams {
     private double toxicityAQ;
     private boolean scanned = false;
     private boolean qualityUpdatedThisTurn =  false;
-    private long lastQualityUpdateTimestamp = -1;
+    private long weatherEventTimestamp = -1;
 
     public Map.Entry<String, Double> getSpecificAirField() {
         return switch (this.getType()) {
@@ -110,19 +110,23 @@ public final class AirInput extends InputParams {
         this.toxicity = this.toxicityAQ > (0.8 * maxScore);
     }
 
-    public void applyWeatherEvent(double rainfall, double windSpeed, String season,
-                                  boolean desertStorm, int numberOfHikers) {
+    public void applyWeatherEvent(final CommandInput commandInput) {
+        if (this.weatherEventTimestamp == commandInput.getTimestamp()) {
+            return;
+        }
+        this.weatherEventTimestamp = commandInput.getTimestamp();
+
         double updatedQuality = this.airQuality;
 
         switch (this.getType()) {
-            case "TropicalAir" -> updatedQuality += (rainfall * 0.3);
-            case "PolarAir" -> updatedQuality -= (windSpeed * 0.2);
+            case "TropicalAir" -> updatedQuality += (commandInput.getRainfall() * 0.3);
+            case "PolarAir" -> updatedQuality -= (commandInput.getWindSpeed() * 0.2);
             case "TemperateAir" -> {
-                double seasonPenalty = "Spring".equalsIgnoreCase(season) ? 15.0 : 0.0;
+                double seasonPenalty = "Spring".equalsIgnoreCase(commandInput.getSeason()) ? 15.0 : 0.0;
                 updatedQuality -= seasonPenalty;
             }
-            case "DesertAir" -> updatedQuality -= (desertStorm ? 30.0 : 0.0);
-            case "MountainAir" -> updatedQuality -= (numberOfHikers * 0.1);
+            case "DesertAir" -> updatedQuality -= (commandInput.isDesertStorm() ? 30.0 : 0.0);
+            case "MountainAir" -> updatedQuality -= (commandInput.getNumberOfHikers() * 0.1);
         }
 
         double normalizeScore = Math.clamp(updatedQuality, 0.0, 100.0);
@@ -133,7 +137,7 @@ public final class AirInput extends InputParams {
 
     public List<Map.Entry<String, Double>> getExtraDetails() {
         List<Map.Entry<String,Double>> details = new ArrayList<>();
-        details.add(Map.entry("airQuality", this.calculateAirQuality()));
+        details.add(Map.entry("airQuality", this.airQuality));
         details.add(Map.entry("humidity", this.humidity));
         details.add(Map.entry("temperature", this.temperature));
         details.add(Map.entry("oxygenLevel", this.oxygenLevel));

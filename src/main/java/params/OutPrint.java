@@ -10,6 +10,16 @@ import java.util.Map;
 
 public class OutPrint extends InputParams{
 
+    public static void printMessage(final ObjectMapper objectMapper, final ArrayNode output,
+                                  final CommandInput commandInput, final String messageToPrint) {
+        ObjectNode message = objectMapper.createObjectNode();
+        message.put("command", commandInput.getCommand());
+        message.put("message", messageToPrint);
+        message.put("timestamp", commandInput.getTimestamp());
+
+        output.add(message);
+    }
+
     public static void printStartFinish(final ObjectMapper objectMapper, final ArrayNode output,
                                   final CommandInput commandInput, final int startFinish) {
         //   Start = 0, Finish = 1
@@ -23,7 +33,6 @@ public class OutPrint extends InputParams{
     }
 
     public static ObjectNode createNodeFromParam(ObjectMapper objectMapper, InputParams param) {
-
         ObjectNode details = objectMapper.createObjectNode();
         details.put("type", param.getType());
         details.put("name", param.getName());
@@ -31,7 +40,20 @@ public class OutPrint extends InputParams{
 
         if (param.getExtraDetails() != null) {
             for (Map.Entry<String, Double> extraDetail : param.getExtraDetails()) {
+                if ("dustParticles".equals(extraDetail.getKey())) {
+                    continue;
+                }
                 details.put(extraDetail.getKey(), extraDetail.getValue());
+            }
+        }
+
+        if (param instanceof AirInput a) {
+            if ("DesertAir".equals(a.getType())) {
+                boolean isStormActive = (a.getWeatherEventTimestamp() != -1);
+                details.put("desertStorm", isStormActive);
+            } else if ("PolarAir".equals(a.getType())) {
+                boolean isStormActive = (a.getWeatherEventTimestamp() != -1);
+                details.put("polarStorm", isStormActive);
             }
         }
 
@@ -136,7 +158,7 @@ public class OutPrint extends InputParams{
                                            final CommandInput commandInput, final long energyLvl,
                                            final long quality) {
         if (energyLvl - quality < 0) {
-            Exceptions.printError(objectMapper, output, commandInput,
+            printMessage(objectMapper, output, commandInput,
                     "ERROR: Not enough battery left. Cannot perform action");
             return false;
         }
@@ -162,15 +184,5 @@ public class OutPrint extends InputParams{
         }
 
         return energyLvl;
-    }
-
-    public static void printMessageRobot (final ObjectMapper objectMapper, final ArrayNode output,
-                                          final CommandInput commandInput, final String messageToPrint) {
-        ObjectNode message = objectMapper.createObjectNode();
-        message.put("command", commandInput.getCommand());
-        message.put("message", messageToPrint);
-        message.put("timestamp", commandInput.getTimestamp());
-
-        output.add(message);
     }
 }

@@ -1,5 +1,7 @@
 package params;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import fileio.*;
 
 import java.math.BigDecimal;
@@ -64,8 +66,9 @@ public class Commands extends InputParams {
         if (airs != null) {
             for (AirInput air : airs) {
                 if (air.getSections() != null) {
+                    air.setWeatherEventTimestamp(-1);
+                    air.calculateAirQuality();
                     for (PairInput pair : air.getSections()) {
-                        air.setAirQuality(air.getAirQuality());
                         map.get(pair.getX()).get(pair.getY()).add(air);
                     }
                 }
@@ -319,8 +322,16 @@ public class Commands extends InputParams {
                     }
                 }
 
-                if (air != null && !air.isQualityUpdatedThisTurn()) {
-                    air.calculateAirQuality();
+                if (air != null) {
+                    boolean hasActiveEvent = (air.getWeatherEventTimestamp() != -1);
+                    boolean isWeatherPersistent = hasActiveEvent &&
+                            (currentTimestamp < air.getWeatherEventTimestamp() + 2);
+                    if (!isWeatherPersistent) {
+                        air.calculateAirQuality();
+                        if (hasActiveEvent) {
+                            air.setWeatherEventTimestamp(-1);
+                        }
+                    }
                     air.setQualityUpdatedThisTurn(true);
                 }
                 if (soil != null && !soil.isQualityUpdatedThisTurn()) {
@@ -386,7 +397,7 @@ public class Commands extends InputParams {
 
         for (InputParams param : cell) {
             if (param instanceof AirInput a) {
-                a.calculateAirQuality();
+//                a.calculateAirQuality();
                 a.calculateToxicity();
                 possibilityToGetDamagedByAir = a.getToxicityAQ();
                 validEntitiesCount++;
@@ -451,4 +462,70 @@ public class Commands extends InputParams {
         }
         return null;
     }
+
+    private static boolean canWeatherChange(final List<List<List<InputParams>>> map, final String type) {
+        int rows = map.size(), cols = map.getFirst().size();
+        for (int x = 0; x < rows; x++) {
+            for (int y = 0; y < cols; y++) {
+                List<InputParams> cell = map.get(x).get(y);
+                if (cell == null || cell.isEmpty()) {
+                    continue;
+                }
+                for (InputParams param : cell) {
+                    if (param instanceof AirInput) {
+                        boolean isMatch = airTypeChangeWeather(type, param);
+
+                        if (isMatch) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    public static void changeWeatherConditions(List<List<List<InputParams>>> map,
+                                               final String type, final ObjectMapper objectMapper,
+                                               final ArrayNode output, final CommandInput commandInput) {
+        if (!canWeatherChange(map, type)) {
+            OutPrint.printMessage(objectMapper, output, commandInput,
+                    "ERROR: The weather change does not affect the environment. Cannot perform action");
+            return;
+        }
+
+        int rows = map.size(), cols = map.getFirst().size();
+        for (int x = 0; x < rows; x++) {
+            for (int y = 0; y < cols; y++) {
+                List<InputParams> cell = map.get(x).get(y);
+                if (cell == null || cell.isEmpty()) {
+                    continue;
+                }
+                for (InputParams param : cell) {
+                    if (param instanceof AirInput) {
+                        boolean isTargetAir = airTypeChangeWeather(type, param);
+
+                        if (isTargetAir) {
+                            ((AirInput) param).applyWeatherEvent(commandInput);
+                        }
+                    }
+                }
+            }
+        }
+        OutPrint.printMessage(objectMapper, output, commandInput, "The weather has changed.");
+    }
+
+    private static boolean airTypeChangeWeather(String type, InputParams param) {
+        if (type == null) return false;
+        String cleanType = type.trim();
+        return switch (cleanType) {
+            case "desertStorm" -> param.getType().equals("DesertAir");
+            case "peopleHiking" -> param.getType().equals("MountainAir");
+            case "newSeason" -> param.getType().equals("TemperateAir");
+            case "polarStorm" -> param.getType().equals("PolarAir");
+            case "rainfall" -> param.getType().equals("TropicalAir");
+            default -> false;
+        };
+    }
+
 }

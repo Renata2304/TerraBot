@@ -1,7 +1,6 @@
 package main;
 
 import params.Commands;
-import params.Exceptions;
 import params.OutPrint;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
@@ -47,17 +46,17 @@ public final class Main {
 
         for (CommandInput commandInput : inputLoader.getCommands()) {
             if (!hasSimulationStarted && !commandInput.getCommand().equals("startSimulation")) {
-                Exceptions.printError(objectMapper, output, commandInput,
+                OutPrint.printMessage(objectMapper, output, commandInput,
                         "ERROR: Simulation not started. Cannot perform action");
                 continue;
             }
             if (hasSimulationStarted && commandInput.getCommand().equals("startSimulation")) {
-                Exceptions.printError(objectMapper, output, commandInput,
+                OutPrint.printMessage(objectMapper, output, commandInput,
                         "ERROR: Simulation already started. Cannot perform action");
                 continue;
             }
             if (nextAction > commandInput.getTimestamp()) {
-                Exceptions.printError(objectMapper, output, commandInput,
+                OutPrint.printMessage(objectMapper, output, commandInput,
                         "ERROR: Robot still charging. Cannot perform action");
                 continue;
             }
@@ -108,12 +107,12 @@ public final class Main {
                 case "rechargeBattery" :
                     energyLvl = energyLvl + commandInput.getTimeToCharge();
                     nextAction = commandInput.getTimestamp() + commandInput.getTimeToCharge();
-                    OutPrint.printMessageRobot(objectMapper, output, commandInput,
+                    OutPrint.printMessage(objectMapper, output, commandInput,
                             "Robot battery is charging.");
                     break;
                 case "scanObject":
                     if (energyLvl < 7) {
-                        Exceptions.printError(objectMapper, output, commandInput,
+                        OutPrint.printMessage(objectMapper, output, commandInput,
                                 "ERROR: Not enough energy to perform action");
                         continue;
                     }
@@ -121,14 +120,18 @@ public final class Main {
 
                     if (type != null) {
                         String message = "The scanned object is " + type + ".";
-                        OutPrint.printMessageRobot(objectMapper, output, commandInput,
+                        OutPrint.printMessage(objectMapper, output, commandInput,
                                 message);
                         energyLvl -= 7;
                     } else {
-                        Exceptions.printError(objectMapper, output, commandInput,
+                        OutPrint.printMessage(objectMapper, output, commandInput,
                                 "ERROR: Object not found. Cannot perform action");
                         continue;
                     }
+                    break;
+                case "changeWeatherConditions":
+                    Commands.changeWeatherConditions(map, commandInput.getType(),
+                            objectMapper, output, commandInput);
                     break;
             }
         }
