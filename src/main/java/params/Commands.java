@@ -397,7 +397,6 @@ public class Commands extends InputParams {
 
         for (InputParams param : cell) {
             if (param instanceof AirInput a) {
-//                a.calculateAirQuality();
                 a.calculateToxicity();
                 possibilityToGetDamagedByAir = a.getToxicityAQ();
                 validEntitiesCount++;
@@ -465,9 +464,9 @@ public class Commands extends InputParams {
 
     private static boolean canWeatherChange(final List<List<List<InputParams>>> map, final String type) {
         int rows = map.size(), cols = map.getFirst().size();
-        for (int x = 0; x < rows; x++) {
+        for (List<List<InputParams>> lists : map) {
             for (int y = 0; y < cols; y++) {
-                List<InputParams> cell = map.get(x).get(y);
+                List<InputParams> cell = lists.get(y);
                 if (cell == null || cell.isEmpty()) {
                     continue;
                 }
@@ -495,9 +494,9 @@ public class Commands extends InputParams {
         }
 
         int rows = map.size(), cols = map.getFirst().size();
-        for (int x = 0; x < rows; x++) {
+        for (List<List<InputParams>> lists : map) {
             for (int y = 0; y < cols; y++) {
-                List<InputParams> cell = map.get(x).get(y);
+                List<InputParams> cell = lists.get(y);
                 if (cell == null || cell.isEmpty()) {
                     continue;
                 }
