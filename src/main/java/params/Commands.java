@@ -517,8 +517,7 @@ public class Commands extends InputParams {
 
     private static boolean airTypeChangeWeather(String type, InputParams param) {
         if (type == null) return false;
-        String cleanType = type.trim();
-        return switch (cleanType) {
+        return switch (type) {
             case "desertStorm" -> param.getType().equals("DesertAir");
             case "peopleHiking" -> param.getType().equals("MountainAir");
             case "newSeason" -> param.getType().equals("TemperateAir");
