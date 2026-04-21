@@ -5,7 +5,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -47,7 +46,7 @@ public final class AirInput extends InputParams {
         };
     }
 
-    public double calculateAirQuality() {
+    public void calculateAirQuality() {
         double calculatedQuality = switch (this.getType()) {
             case "TropicalAir" -> (this.oxygenLevel * 2)
                     + (this.humidity * 0.5)
@@ -74,7 +73,6 @@ public final class AirInput extends InputParams {
 
         normalizeScore = Math.clamp(this.co2Level, 0, 100);
         this.co2Level = Math.round(normalizeScore * 100.0) / 100.0;
-        return this.airQuality;
     }
 
     public String getQualityStatus(double airQuality) {

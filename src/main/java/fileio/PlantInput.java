@@ -60,7 +60,7 @@ public final class PlantInput extends InputParams {
     public void addGrowth(double amount) {
         this.growthLevel += amount;
 
-        if (this.growthLevel > 1.0) {
+        if (this.growthLevel >= 1.0) {
             this.growthLevel = 0.0;
 
             switch (this.status) {

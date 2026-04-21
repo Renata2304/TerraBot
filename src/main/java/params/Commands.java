@@ -307,15 +307,13 @@ public class Commands extends InputParams {
                 }
 
                 if (animal != null && animal.isScanned()) {
-                    long timeSinceAnimalScan = currentTimestamp - animal.getScanTimestamp();
-
                     if (!animal.isFedThisTurn()) {
                         processAnimalFeeding(animal, cell);
                         animal.setFedThisTurn(true);
                     }
 
                     if (!animal.isMovedThisTurn()) {
-                        if (timeSinceAnimalScan >= 2 && timeSinceAnimalScan % 2 == 0) {
+                        if (currentTimestamp > 0 && currentTimestamp % 2 == 0) {
                             processAnimalMovement(animal, x, y, map);
                         }
                         animal.setMovedThisTurn(true);
