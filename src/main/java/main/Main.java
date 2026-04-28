@@ -11,7 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.Map;
 
 
 /**
@@ -43,6 +43,7 @@ public final class Main {
         int crtSimulation = 0;
         long energyLvl = -1;
         int nextAction = 0;
+        List<Map.Entry<String,List<String>>> inventory =  new ArrayList<>();
 
         for (CommandInput commandInput : inputLoader.getCommands()) {
             if (!hasSimulationStarted && !commandInput.getCommand().equals("startSimulation")) {
@@ -122,6 +123,12 @@ public final class Main {
                         String message = "The scanned object is " + type + ".";
                         OutPrint.printMessage(objectMapper, output, commandInput,
                                 message);
+                        for (InputParams params: map.get(robotPosition.getX()).get(robotPosition.getY())) {
+                            if (params.getType().equals(type)) {
+                                inventory.add(Map.entry(params.getName(), new ArrayList<>()));
+                                break;
+                            }
+                        }
                         energyLvl -= 7;
                     } else {
                         OutPrint.printMessage(objectMapper, output, commandInput,
@@ -132,6 +139,9 @@ public final class Main {
                 case "changeWeatherConditions":
                     Commands.changeWeatherConditions(map, commandInput.getType(),
                             objectMapper, output, commandInput);
+                    break;
+                case "printKnowledgeBase":
+                    OutPrint.printKnowledgeBase(objectMapper, output, commandInput, inventory);
                     break;
             }
         }

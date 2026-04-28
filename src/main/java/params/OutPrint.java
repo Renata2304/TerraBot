@@ -185,4 +185,31 @@ public class OutPrint extends InputParams{
 
         return energyLvl;
     }
+
+    public static void printKnowledgeBase(final ObjectMapper objectMapper, final ArrayNode output,
+                                          final CommandInput commandInput,
+                                          final List<Map.Entry<String, List<String>>> inventory) {
+        ObjectNode message = objectMapper.createObjectNode();
+        message.put("command", commandInput.getCommand());
+
+        ArrayNode outputArray = objectMapper.createArrayNode();
+
+        for (Map.Entry<String, List<String>> entry : inventory) {
+            ObjectNode details = objectMapper.createObjectNode();
+            details.put("topic", entry.getKey());
+
+            ArrayNode factsArray = objectMapper.createArrayNode();
+            for (String fact : entry.getValue()) {
+                factsArray.add(fact);
+            }
+
+            details.set("facts", factsArray);
+            outputArray.add(details);
+        }
+
+        message.set("output", outputArray);
+        message.put("timestamp", commandInput.getTimestamp());
+
+        output.add(message);
+    }
 }
