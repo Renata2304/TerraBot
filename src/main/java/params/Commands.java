@@ -6,10 +6,7 @@ import fileio.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class Commands extends InputParams {
 
@@ -523,5 +520,4 @@ public class Commands extends InputParams {
             default -> false;
         };
     }
-
 }

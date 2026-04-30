@@ -123,8 +123,14 @@ public final class Main {
                         String message = "The scanned object is " + type + ".";
                         OutPrint.printMessage(objectMapper, output, commandInput,
                                 message);
+                        type = type.substring(type.lastIndexOf(" ") + 1);
                         for (InputParams params: map.get(robotPosition.getX()).get(robotPosition.getY())) {
-                            if (params.getType().equals(type)) {
+                            boolean alreadyInInventory = inventory.stream()
+                                    .anyMatch(entry -> entry.getKey().equals(params.getName()));
+
+                            if ((params instanceof PlantInput && type.equals("plant") ||
+                                params instanceof WaterInput && type.equals("water")) &&
+                                !alreadyInInventory) {
                                 inventory.add(Map.entry(params.getName(), new ArrayList<>()));
                                 break;
                             }
@@ -139,6 +145,29 @@ public final class Main {
                 case "changeWeatherConditions":
                     Commands.changeWeatherConditions(map, commandInput.getType(),
                             objectMapper, output, commandInput);
+                    break;
+                case "learnFact":
+                    if (energyLvl < 2) {
+                        OutPrint.printMessage(objectMapper, output, commandInput,
+                                "ERROR: Not enough battery left. Cannot perform action");
+                        continue;
+                    }
+                    boolean found = false;
+                    for (Map.Entry<String, List<String>> stringListEntry : inventory) {
+                        if (stringListEntry.getKey().equals(commandInput.getComponents())) {
+                            stringListEntry.getValue().add(commandInput.getSubject());
+                            found = true;
+                            OutPrint.printMessage(objectMapper, output, commandInput,
+                                    "The fact has been successfully saved in the database.");
+                            energyLvl -= 2;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        OutPrint.printMessage(objectMapper, output, commandInput,
+                                "ERROR: Subject not yet saved. Cannot perform action");
+                        continue;
+                    }
                     break;
                 case "printKnowledgeBase":
                     OutPrint.printKnowledgeBase(objectMapper, output, commandInput, inventory);
